@@ -1,7 +1,0 @@
-- name: QA Build Worker Image
-  hosts: labNodes
-  vars:
-    ansible_become_timeout: 30
-  roles:
-    - role: worker
-      become: true

@@ -1,56 +1,72 @@
-# instructlab-bot
+# InstructLab Bot UI
 
-A GitHub bot to increase contributor test and review velocity for
-[instructlab/taxonomy](https://github.com/instructlab/taxonomy).
+This is a [Patternfly](https://www.patternfly.org/get-started/develop/) react deployment for front-ending InstructLab Bot jobs. The framework is based off [patternfloy-react-seed](https://github.com/patternfly/patternfly-react-seed) but upgraded to use the latest React v6+. The data is all read only from redis, via the api-server service.
 
-More detail on how this bot fits into the overall architecture is being
-captured in this [design
-document](docs/github-taxonomy-automation.md).
+## Quickstart
 
-## Overview
+- Build the ui and apiserver images and set the `/ui/.env`. That .env file will be copied into the container at build time, it needs to be edited before building the image.
 
-Personas:
+> Note: Since the UI and API server need to be reachable via host networking in this compose file configuration, this needs to be run on Linux since OSX container runtimes are userspace and don't support host networking.
 
-- Taxonomy **Contributor**
-- Taxonomy **Triager**
-- Bot **Admin**
+```shell
+podman build -f ui/apiserver/Containerfile -t ghcr.io/instructlab/instructlab-bot/apiserver:main .
+podman build -f ui/Containerfile -t ghcr.io/instructlab/instructlab-bot/bot-ui:main .
+```
 
-Our goal is to implement a GitHub bot that will:
+- Run the [compose.ui](compose.ui).
 
-- Automate major portions of the test and review workflow for taxonomy PRs.
-- Stash the generated data and trained models and make them available for download.
-- Have the capacity to serve these models for testing purposes.
-- Have a way to monitor the system's state -- what builds are available for each
-  PR, what jobs are in progress, etc …
-  - Contributor / Triager - status via GitHub PR comments from the bot
-  - Admin - OTEL, Grafana, etc …
+## Manually Running the API Server
 
-### Current Status
+To start the api server manually, run the following with some example values. The client needs to be able to reach the apiserver. If running in a container and trying to reach the host from a remote site, bind to `--listen-address :3000`. If all connections are local you could use `--listen-address localhost:3000`.
 
-The current iteration is focused on automating the `ilab generate` portion of
-the workflow. The following diagram shows the architecture of the bot and its
-supporting infrastructure. It supports scaling a pool of workers to run `ilab
-generate` jobs. The workers can be located anywhere and will be connect to Redis
-over a private mesh network managed by [Nexodus](https://nexodus.io).
+```bash
+cd ui/apiserver
+go run apiserver.go \
+  --redis-server localhost:6379 \
+  --listen-address :3000 \
+  --api-user kitteh \
+  --api-pass floofykittens \
+  --debug
+```
 
-[![Instruct Lab Bot Architecture](./docs/bot-arch.png)](./docs/bot-arch.png)
+## Manually Running the React UI
 
-The current GitHub workflow in a PR is:
+To start the UI manually instead of in a container, set the .env in the ui directory and run the following:
 
-1. PR is opened by the Contributor.
-2. User runs `@instructlab-bot generate` in a comment on the PR.
-3. Bot generates data using `ilab generate` and stores it in an object store (S3).
-4. Bot replies: "Here is the generated data ..."
+```bash
+cd ui/
+npm run start:dev
+```
 
-## Contributing
+## Authentication
 
-If you have suggestions for how instructlab-bot could be improved, or want to
-report a bug, open an issue! We'd love all and any contributions.
+Currently, there is no OAuth implementation, this just supports a user/pass defined at runtime. If no `/ui/.env` file is defined, the user/pass is simply admin/password. To change those defaults, create the `/ui/.env` file and fill in the account user/pass with the following. The same applies to the websocket address of the api-server service.
 
-For more, check out the [InstructLab Bot Contribution Guide](CONTRIBUTING.md)
-and [InstructLab
-Community](https://github.com/instructlab/community/blob/main/CONTRIBUTING.md).
+Example [.env](.env.example) file.
 
-## License
+```text
+IL_UI_ADMIN_USERNAME=admin
+IL_UI_ADMIN_PASSWORD=pass
+IL_UI_API_SERVER_USERNAME=kitteh
+IL_UI_API_SERVER_PASSWORD=floofykittens
+IL_UI_API_SERVER_URL=http://<PUBLIC_IP>:3000/jobs
+```
 
-[Apache 2.0](LICENSE)
+## Development Scripts
+
+```bash
+# Install development/build dependencies
+npm install
+
+# Start the development server
+npm run start:dev
+
+# Run a production build (outputs to "dist" dir)
+npm run build
+
+# Start the express server (run a production build)
+npm run start
+
+# Start storybook component explorer
+npm run storybook
+```

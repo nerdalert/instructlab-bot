@@ -1,4 +1,0 @@
-- name: Deploy Lab Bot (Go version)
-  hosts: botNode
-  roles:
-    - role: gobot

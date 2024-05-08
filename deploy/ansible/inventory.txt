@@ -1,2 +1,0 @@
-[botNode]
-[labNodes]

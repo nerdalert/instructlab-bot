@@ -1,9 +1,0 @@
-- name: Deploy EC2 Instruct Lab Worker Node
-  hosts: localhost
-  vars_files:
-    - vars.yml
-  roles:
-    - role: ec2
-      vars:
-        ec2_aws_instance_type: g4dn.xlarge
-        ec2_aws_nodetype_tag: "instructlab-worker-node"

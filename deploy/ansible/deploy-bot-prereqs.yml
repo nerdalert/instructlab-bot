@@ -1,7 +1,0 @@
-- name: Deploy Node Prereqs
-  hosts: botNode
-  roles:
-    - role: geerlingguy.docker
-      become: true
-    - role: packages
-      become: true

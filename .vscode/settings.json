@@ -1,8 +1,0 @@
-{
-  "files.associations": {
-    "deploy/ansible/*.yml": "ansible"
-  },
-  "cSpell.words": [
-    "triagers"
-  ]
-}

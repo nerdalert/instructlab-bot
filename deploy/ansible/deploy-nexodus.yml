@@ -1,5 +1,0 @@
-- name: Deploy Nexodus Agent
-  hosts: labNodes:botNode
-  roles:
-    - role: nexodus
-      become: true

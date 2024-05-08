@@ -1,5 +1,0 @@
-- name: Deploy Redis
-  hosts: botNode
-  roles:
-    - role: redis
-      become: true

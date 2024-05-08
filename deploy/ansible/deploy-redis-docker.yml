@@ -1,5 +1,0 @@
-- name: Deploy Redis in container
-  hosts: botNode
-  roles:
-    - role: redis-docker
-      become: true
