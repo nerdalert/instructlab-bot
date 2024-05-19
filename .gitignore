@@ -1,6 +1,8 @@
 node_modules
 npm-debug.log
 *.pem
+*.pem2
+.env.local
 !mock-cert.pem
 .env
 *.env

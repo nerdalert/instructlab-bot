@@ -11,52 +11,44 @@ import UserIcon from '@patternfly/react-icons/dist/dynamic/icons/user-icon';
 import CopyIcon from '@patternfly/react-icons/dist/dynamic/icons/copy-icon';
 import ArrowUpIcon from '@patternfly/react-icons/dist/dynamic/icons/arrow-up-icon';
 import Image from 'next/image';
-import { usePostChat } from '../../common/HooksPostChat';
+import { callChatModel, Message } from '../../app/actions';
+import { readStreamableValue } from 'ai/rsc';
 import styles from './chat.module.css';
 
-interface Message {
-  text: string;
-  isUser: boolean;
-}
-
 export const ChatForm: React.FunctionComponent = () => {
-  const [question, setQuestion] = useState('');
-  const [context, setContext] = useState('');
+  const [question, setQuestion] = useState<string>('');
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [streamedContent, setStreamedContent] = useState<string>('');
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
-  const { postChat } = usePostChat();
-
-  const handleQuestionChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
+  const handleQuestionChange = (value: string) => {
     setQuestion(value);
-  };
-
-  const handleContextChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
-    setContext(value);
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!question.trim()) return;
 
-    setMessages((messages) => [...messages, { text: question, isUser: true }]);
+    const newMessages: Message[] = [{ role: 'user', content: question }];
+    setMessages(newMessages);
     setIsLoading(true);
     setQuestion('');
-    setContext('');
+    setStreamedContent('');
 
-    const result = await postChat({
-      question: question.trim(),
-      context: context.trim(),
-    });
+    const result = await callChatModel(newMessages);
+
+    let assistantMessage = '';
+    for await (const chunk of readStreamableValue(result)) {
+      assistantMessage += chunk;
+      setStreamedContent(assistantMessage);
+      setMessages([
+        { role: 'user', content: question },
+        { role: 'assistant', content: assistantMessage },
+      ]);
+    }
 
     setIsLoading(false);
-
-    if (result && result.answer) {
-      setMessages((messages) => [...messages, { text: result.answer, isUser: false }]);
-    } else {
-      setMessages((messages) => [...messages, { text: 'Failed to fetch response from the server.', isUser: false }]);
-    }
   };
 
   const copyToClipboard = (text: string) => {
@@ -74,7 +66,7 @@ export const ChatForm: React.FunctionComponent = () => {
     if (messagesContainerRef.current) {
       messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, streamedContent]);
 
   return (
     <div className={styles.chatContainer}>
@@ -83,22 +75,30 @@ export const ChatForm: React.FunctionComponent = () => {
       </h1>
       <div ref={messagesContainerRef} className={styles.messagesContainer}>
         {messages.map((msg, index) => (
-          <div key={index} className={`${styles.message} ${msg.isUser ? styles.chatQuestion : styles.chatAnswer}`}>
-            {msg.isUser ? (
+          <div key={index} className={`${styles.message} ${msg.role === 'user' ? styles.chatQuestion : styles.chatAnswer}`}>
+            {msg.role === 'user' ? (
               <UserIcon className={styles.userIcon} />
             ) : (
               <Image src="/bot-icon-chat-32x32.svg" alt="Bot" className={styles.botIcon} width={32} height={32} />
             )}
             <pre>
-              <code>{msg.text}</code>
+              <code>{msg.content}</code>
             </pre>
-            {!msg.isUser && (
-              <Button variant="plain" onClick={() => copyToClipboard(msg.text)} aria-label="Copy to clipboard">
+            {msg.role !== 'user' && (
+              <Button variant="plain" onClick={() => copyToClipboard(msg.content)} aria-label="Copy to clipboard">
                 <CopyIcon />
               </Button>
             )}
           </div>
         ))}
+        {streamedContent && (
+          <div className={styles.message}>
+            <Image src="/bot-icon-chat-32x32.svg" alt="Bot" className={styles.botIcon} width={32} height={32} />
+            <pre>
+              <code>{streamedContent}</code>
+            </pre>
+          </div>
+        )}
         {isLoading && <Spinner className={styles.spinner} aria-label="Loading" size="lg" />}
       </div>
       <div className={styles.chatFormContainer}>
@@ -112,18 +112,8 @@ export const ChatForm: React.FunctionComponent = () => {
                   id="question-field"
                   name="question-field"
                   value={question}
-                  onChange={handleQuestionChange}
+                  onChange={(_, value) => handleQuestionChange(value)}
                   placeholder="Type your question here..."
-                />
-              </FormGroup>
-              <FormGroup fieldId="context-field" className={styles.inputField}>
-                <TextInput
-                  type="text"
-                  id="context-field"
-                  name="context-field"
-                  value={context}
-                  onChange={handleContextChange}
-                  placeholder="Optional context here..."
                 />
               </FormGroup>
             </div>
