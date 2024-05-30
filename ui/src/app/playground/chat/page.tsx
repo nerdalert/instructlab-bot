@@ -6,7 +6,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { Button } from '@patternfly/react-core/dist/dynamic/components/Button';
 import { Form } from '@patternfly/react-core/dist/dynamic/components/Form';
 import { FormGroup } from '@patternfly/react-core/dist/dynamic/components/Form';
-import { TextInput, TextArea } from '@patternfly/react-core/';
+import { TextArea } from '@patternfly/react-core/';
 import { Select } from '@patternfly/react-core/dist/dynamic/components/Select';
 import { SelectOption, SelectList } from '@patternfly/react-core/dist/dynamic/components/Select';
 import { MenuToggle, MenuToggleElement } from '@patternfly/react-core/dist/dynamic/components/MenuToggle';
@@ -85,16 +85,23 @@ const ChatPage: React.FC = () => {
       </SelectOption>
     ));
 
-  const handleQuestionChange = (event: React.FormEvent<HTMLInputElement>, value: string) => {
-    setQuestion(value);
+  const handleQuestionChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setQuestion(event.currentTarget.value);
   };
 
   const handleSystemRoleChange = (value: string) => {
     setSystemRole(value);
   };
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      handleSubmit();
+    }
+  };
+
+  const handleSubmit = async (event?: React.FormEvent<HTMLFormElement>) => {
+    if (event) event.preventDefault();
     if (!question.trim() || !selectedModel) return;
 
     setMessages((messages) => [...messages, { text: question, isUser: true }]);
@@ -279,16 +286,32 @@ const ChatPage: React.FC = () => {
           ))}
           {isLoading && <Spinner aria-label="Loading" size="lg" />}
         </div>
-        <Form onSubmit={handleSubmit} className={styles.chatForm}>
+        <Form
+          onSubmit={(event) => {
+            handleSubmit(event);
+            const textarea = document.getElementById('question-field') as HTMLTextAreaElement;
+            if (textarea) {
+              textarea.style.height = 'auto';
+            }
+          }}
+          className={styles.chatForm}
+        >
           <FormGroup fieldId="question-field">
-            <TextInput
+            <TextArea
               isRequired
-              type="text"
               id="question-field"
               name="question-field"
               value={question}
-              onChange={handleQuestionChange}
+              onChange={(event) => {
+                handleQuestionChange(event);
+                const target = event.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+              }}
+              onKeyDown={handleKeyDown}
               placeholder="Type your question here..."
+              rows={2}
+              style={{ maxHeight: '200px', overflow: 'auto', resize: 'none' }}
             />
           </FormGroup>
           <Button variant="primary" type="submit">

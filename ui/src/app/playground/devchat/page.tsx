@@ -298,15 +298,17 @@ const DevChatPage: React.FC = () => {
                     </div>
                   </div>
                   {msg.isUser ? (
-                    <TextInput
+                    <TextArea
                       id={`message-${index}`}
                       aria-label={`Message ${index}`}
                       value={msg.text}
-                      onChange={(event, value) => {
+                      onChange={(event) => {
                         const newMessages = [...messages];
-                        newMessages[index].text = value;
+                        newMessages[index].text = event.currentTarget.value;
                         setMessages(newMessages);
                       }}
+                      rows={2}
+                      style={{ width: '100%', resize: 'none' }}
                     />
                   ) : (
                     <div>{msg.text}</div>
@@ -323,55 +325,86 @@ const DevChatPage: React.FC = () => {
                       </Button>
                     </div>
                   </div>
-                  <TextInput
+                  <TextArea
                     id={`new-message-${index}`}
                     aria-label={`New Message ${index}`}
                     value={msg.text}
-                    onChange={(event, value) => {
+                    onChange={(event) => {
                       const newMsgs = [...newMessages];
-                      newMsgs[index].text = value;
+                      newMsgs[index].text = event.currentTarget.value;
                       setNewMessages(newMsgs);
                     }}
+                    rows={6}
+                    style={{ width: '100%', resize: 'none', overflow: 'auto' }}
                   />
                 </div>
               ))}
               {isLoading && <Spinner aria-label="Loading" size="lg" />}
             </div>
             <div className={styles.chatInputContainer}>
-              <TextInput
-                isRequired
-                type="text"
-                id="question-field"
-                name="question-field"
-                value={question}
-                onChange={(event, value) => handleQuestionChange(setQuestion)(value)}
-                placeholder="Enter Text..."
-                aria-label="Question"
-              />
-              <Button variant="secondary" onClick={() => handleAddMessage(question, setQuestion, newMessages, setNewMessages, true)}>
-                Add
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() =>
-                  runMessage(
-                    newMessages,
-                    setNewMessages,
-                    setMessages,
-                    setIsLoading,
-                    systemRole,
-                    temperature,
-                    maxTokens,
-                    topP,
-                    frequencyPenalty,
-                    presencePenalty,
-                    repetitionPenalty,
-                    selectedModel
-                  )
-                }
+              <Form
+                onSubmit={() => {
+                  const textarea = document.getElementById('question-field') as HTMLTextAreaElement;
+                  if (textarea) {
+                    textarea.style.height = 'auto';
+                  }
+                }}
+                style={{ width: '100%' }}
               >
-                Run
-              </Button>
+                <FormGroup fieldId="question-field" style={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <TextArea
+                    isRequired
+                    id="question-field"
+                    name="question-field"
+                    value={question}
+                    onChange={(event) => {
+                      const target = event.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = `${Math.min(target.scrollHeight, 200)}px`;
+                      handleQuestionChange(setQuestion)(event.currentTarget.value);
+                    }}
+                    placeholder="Type your question here..."
+                    rows={2}
+                    style={{ maxHeight: '200px', overflow: 'auto', resize: 'none', width: '100%' }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        handleAddMessage(question, setQuestion, newMessages, setNewMessages, true);
+                        const textarea = document.getElementById('question-field') as HTMLTextAreaElement;
+                        if (textarea) {
+                          textarea.style.height = 'auto';
+                        }
+                      }}
+                      style={{ marginRight: '10px' }}
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() =>
+                        runMessage(
+                          newMessages,
+                          setNewMessages,
+                          setMessages,
+                          setIsLoading,
+                          systemRole,
+                          temperature,
+                          maxTokens,
+                          topP,
+                          frequencyPenalty,
+                          presencePenalty,
+                          repetitionPenalty,
+                          selectedModel
+                        )
+                      }
+                    >
+                      Run
+                    </Button>
+                  </div>
+                </FormGroup>
+              </Form>
             </div>
           </div>
           <div className={styles.parametersSection}>
